@@ -199,14 +199,6 @@ namespace NexusACDL
                             richTB.Text += $"Template found at location {bestMatchLocation} with match value {bestMatchValue} and size {bestMatchSize}\n";
                             matchFound = true;
 
-                            // Rita en röd rektangel runt matchningen
-                            using (Graphics g = Graphics.FromImage(screenshot))
-                            {
-                                g.DrawRectangle(new Pen(Color.Red, 3), new Rectangle(bestMatchLocation, bestMatchSize));
-                            }
-                            // Spara skärmdumpen med rektangeln
-                            screenshot.Save("screenshot_with_match.png", ImageFormat.Png);
-
                             // Beräkna mitten av matchningen
                             int centerX = selectedScreen.Bounds.X + bestMatchLocation.X + bestMatchSize.Width / 2;
                             int centerY = selectedScreen.Bounds.Y + bestMatchLocation.Y + bestMatchSize.Height / 2;
