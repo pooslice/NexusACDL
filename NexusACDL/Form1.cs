@@ -123,7 +123,7 @@ namespace NexusACDL
         {
 
             timer = new System.Windows.Forms.Timer();
-            timer.Tick += OnTimedEvent;
+            timer.Tick += async (sender, e) => await OnTimedEventAsync(sender, e);
         }
 
         private void InitializeScreenComboBox()
@@ -160,7 +160,7 @@ namespace NexusACDL
             startButton.Enabled = true;
         }
 
-        private void OnTimedEvent(object sender, EventArgs e)
+        private async Task OnTimedEventAsync(object sender, EventArgs e)
         {
             try
             {
@@ -175,14 +175,14 @@ namespace NexusACDL
                 }
 
                 // Konvertera Bitmap till Image<Bgr, byte>
-                Image<Bgr, byte> screenImage = BitmapToImage(screenshot);
+                Image<Bgr, byte> screenImage = await Task.Run(() => BitmapToImage(screenshot));
 
                 bool matchFound = false;
 
                 // Iterera genom alla mallbilder och utför matchning
                 foreach (var template in templates)
                 {
-                    using (Image<Gray, float> result = screenImage.MatchTemplate(template, TemplateMatchingType.CcoeffNormed))
+                    using (Image<Gray, float> result = await Task.Run(() => screenImage.MatchTemplate(template, TemplateMatchingType.CcoeffNormed)))
                     {
                         double[] minValues, maxValues;
                         Point[] minLocations, maxLocations;
@@ -193,11 +193,19 @@ namespace NexusACDL
                         Size bestMatchSize = template.Size;
 
                         // Kontrollera om en bra matchning hittades
-                        double threshold = 0.7; // Tröskelvärde, justera vid behov
+                        double threshold = 0.5; // Tröskelvärde, justera vid behov
                         if (bestMatchValue > threshold)
                         {
                             richTB.Text += $"Template found at location {bestMatchLocation} with match value {bestMatchValue} and size {bestMatchSize}\n";
                             matchFound = true;
+
+                            // Rita en röd rektangel runt matchningen
+                            using (Graphics g = Graphics.FromImage(screenshot))
+                            {
+                                g.DrawRectangle(new Pen(Color.Red, 3), new Rectangle(bestMatchLocation, bestMatchSize));
+                            }
+                            // Spara skärmdumpen med rektangeln
+                            screenshot.Save("screenshot_with_match.png", ImageFormat.Png);
 
                             // Beräkna mitten av matchningen
                             int centerX = selectedScreen.Bounds.X + bestMatchLocation.X + bestMatchSize.Width / 2;
@@ -221,6 +229,8 @@ namespace NexusACDL
             {
                 richTB.Text += $"Error in timer event: {ex.Message}\n";
             }
+            richTB.SelectionStart = richTB.Text.Length;
+            richTB.ScrollToCaret();
         }
 
         private static Image<Bgr, byte> BitmapToImage(Bitmap bitmap)
